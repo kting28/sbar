@@ -5,16 +5,18 @@ printf "$$" > ~/.cache/pidofbar
 sec=0
 
 # MODULES
+num_cores="$(lscpu | grep "CPU(s):" | sed "s/CPU(s):\s*\([0-9]*\)/\1/g")"
 update_cpu () { 
-	cpu="$(grep -o "^[^ ]*" /proc/loadavg )" 
+  cpu="$(grep -o "^[^ ]*" /proc/loadavg )/$num_cores" 
 }
 
 update_memory () { 
-	memory="$(free -h | sed -n "2s/\([^ ]* *\)\{2\}\([^ ]*\).*/\2/p")"
+	#memory="$(free -h | sed -n "2s/\([^ ]* *\)\{2\}\([^ ]*\).*/\2/p")"
+	memory="$(free -h | awk '/^Mem/ {print $3"/"$2}' | sed s/i//g)"
 }
 
 update_time () { 
-	time="$(date "+[%a %d %b] [%I:%M %P]")" 
+	time="$(date "+%a %D | %R %Z")" 
 }
 
 update_weather () { 
@@ -48,19 +50,18 @@ update_backlight () {
 
 
 # modules that don't update on their own need to be run at the start for getting their initial value
-update_vol
-update_backlight
-
+#update_vol
+#update_backlight
 display () { 
 	#printf "%s\n" " $event [$weather] [$memory $cpu] [$bat] [$backlight] [$vol] $time "
-	xsetroot -name " [$weather] [$memory $cpu] [$bat] [$backlight] [$vol] $time "
+	xsetroot -name " | M: $memory | L: $cpu | $time "
 }
 
 # SIGNALLING
 # trap	"<function>;display"		"RTMIN+n"
-trap	"update_vol;display"		"RTMIN"
-trap	"update_backlight;display" 	"RTMIN+1"
-trap	"update_bat;display" 		"RTMIN+2"
+# trap	"update_vol;display"		"RTMIN"
+# trap	"update_backlight;display" 	"RTMIN+1"
+# trap	"update_bat;display" 		"RTMIN+2"
 # to update it from external commands
 ## kill -m "$(cat ~/.cache/pidofbar)"
 # where m = 34 + n
@@ -73,8 +74,8 @@ do
 		[ $((sec % 5 )) -eq 0 ] && update_time 	# update time every 5 seconds
 		[ $((sec % 15)) -eq 0 ] && update_cpu 	# update cpu every 15 seconds
 		[ $((sec % 15)) -eq 0 ] && update_memory
-		[ $((sec % 60)) -eq 0 ] && update_bat
-		[ $((sec % 3600)) -eq 2 ] && update_weather 
+		#[ $((sec % 60)) -eq 0 ] && update_bat
+		#[ $((sec % 3600)) -eq 2 ] && update_weather 
 		#[ $((sec % 300)) -eq 1 ] && update_event
 
 		# how often the display updates ( 5 seconds )
